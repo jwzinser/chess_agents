@@ -20,6 +20,7 @@ from pydantic import BaseModel
 
 from analysis_agent import analysis_agent
 from chess_engine import ChessGame
+from move_agent import explain_move
 from orchestrator import ai_move_orchestrator
 
 app = FastAPI(title="Chess Agents API")
@@ -32,6 +33,7 @@ app.add_middleware(
 )
 
 GAME = ChessGame()
+LAST_AI_MOVE: dict | None = None
 
 
 class NewGameRequest(BaseModel):
@@ -50,6 +52,10 @@ class AskResponse(BaseModel):
     answer: str
 
 
+class ExplainResponse(BaseModel):
+    comment: str
+
+
 class MoveResponse(BaseModel):
     ok: bool
     san: str | None = None
@@ -60,9 +66,11 @@ class MoveResponse(BaseModel):
 
 @app.post("/new_game")
 def new_game(req: NewGameRequest) -> dict:
+    global LAST_AI_MOVE
     if req.human_color not in ("white", "black"):
         raise HTTPException(400, "human_color must be 'white' or 'black'")
     GAME.reset(human_color=req.human_color)
+    LAST_AI_MOVE = None
     return GAME.to_state()
 
 
@@ -86,15 +94,40 @@ def move(req: MoveRequest) -> MoveResponse:
 
 @app.post("/ai_move", response_model=MoveResponse)
 def ai_move() -> MoveResponse:
+    global LAST_AI_MOVE
     if GAME.board.is_game_over():
         raise HTTPException(400, "Game is already over")
     if GAME.turn_is_human():
         raise HTTPException(400, "It is the human player's turn")
 
+    color = "white" if GAME.board.turn else "black"
+    fen_before = GAME.board.fen()
+    history_before = GAME.move_history_san()
+
     result = ai_move_orchestrator(GAME)
+    if result.ok:
+        LAST_AI_MOVE = {
+            "fen_before": fen_before,
+            "san": result.san,
+            "color": color,
+            "move_history_san": history_before + [result.san],
+        }
     return MoveResponse(
         ok=result.ok, san=result.san, uci=result.uci, error=result.error, state=GAME.to_state()
     )
+
+
+@app.post("/explain_last_move", response_model=ExplainResponse)
+def explain_last_move() -> ExplainResponse:
+    if LAST_AI_MOVE is None:
+        raise HTTPException(400, "No AI move has been played yet")
+    comment = explain_move(
+        fen_before=LAST_AI_MOVE["fen_before"],
+        san=LAST_AI_MOVE["san"],
+        move_history_san=LAST_AI_MOVE["move_history_san"],
+        color=LAST_AI_MOVE["color"],
+    )
+    return ExplainResponse(comment=comment)
 
 
 @app.post("/ask", response_model=AskResponse)

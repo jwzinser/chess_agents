@@ -62,3 +62,8 @@ export async function askAboutPosition(question: string): Promise<string> {
   const data = await request<{ answer: string }>("/ask", { question });
   return data.answer;
 }
+
+export async function explainLastMove(): Promise<string> {
+  const data = await request<{ comment: string }>("/explain_last_move");
+  return data.comment;
+}

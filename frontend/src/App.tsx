@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Board from "./Board";
 import {
   askAboutPosition,
+  explainLastMove,
   getState,
   newGame,
   playAiMove,
@@ -86,6 +87,20 @@ function App() {
         setGameState(res.state);
         if (res.uci) setLastMove({ from: res.uci.slice(0, 2), to: res.uci.slice(2, 4) });
         if (!res.ok && res.error) setMoveError(res.error);
+        if (res.ok && res.san) {
+          const san = res.san;
+          explainLastMove()
+            .then((comment) => {
+              if (cancelled) return;
+              setMessages((prev) => [
+                ...prev,
+                { id: nextId++, role: "assistant", content: `Played ${san}: ${comment}` },
+              ]);
+            })
+            .catch(() => {
+              /* commentary is best-effort, ignore failures */
+            });
+        }
       })
       .catch((err) => {
         if (!cancelled) setMoveError(err instanceof Error ? err.message : "AI move failed");

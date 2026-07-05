@@ -57,6 +57,7 @@ function App() {
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
   const [aiThinking, setAiThinking] = useState(false);
+  const [moveInFlight, setMoveInFlight] = useState(false);
   const [starting, setStarting] = useState(true);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -128,7 +129,9 @@ function App() {
   }
 
   async function handleSquareMove(uci: string) {
+    if (moveInFlight) return;
     setMoveError(null);
+    setMoveInFlight(true);
     try {
       const res = await playMove(uci);
       if (!res.ok) {
@@ -139,6 +142,8 @@ function App() {
       if (res.uci) setLastMove({ from: res.uci.slice(0, 2), to: res.uci.slice(2, 4) });
     } catch (err) {
       setMoveError(err instanceof Error ? err.message : "Move failed");
+    } finally {
+      setMoveInFlight(false);
     }
   }
 
@@ -163,7 +168,11 @@ function App() {
   }
 
   const boardDisabled =
-    !gameState || gameState.game_over || gameState.turn !== gameState.human_color || aiThinking;
+    !gameState ||
+    gameState.game_over ||
+    gameState.turn !== gameState.human_color ||
+    aiThinking ||
+    moveInFlight;
 
   return (
     <div className="app">

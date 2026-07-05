@@ -1,0 +1,231 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.app-header {
+  padding: 24px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.app-header p {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-wrap: wrap;
+}
+
+.board-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px 20px;
+  flex: 1 1 480px;
+  border-right: 1px solid var(--border);
+}
+
+.game-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  align-self: stretch;
+  justify-content: center;
+}
+
+.game-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.game-controls select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 14px;
+}
+
+.game-controls button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.game-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-pill {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--code-bg);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+}
+
+.status-pill--check {
+  background: rgba(250, 204, 21, 0.15);
+  border-color: rgba(250, 204, 21, 0.5);
+}
+
+.status-pill--over,
+.status-pill--checkmate {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.status-thinking {
+  font-size: 13px;
+  color: var(--text);
+  font-style: italic;
+}
+
+.move-error {
+  font-size: 13px;
+  color: #dc2626;
+}
+
+.move-history {
+  width: 100%;
+  max-width: 480px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-sizing: border-box;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.chat-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 360px;
+  min-height: 400px;
+}
+
+.chat-log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+.chat-empty {
+  margin: auto;
+  color: var(--text);
+  font-size: 14px;
+  text-align: center;
+}
+
+.chat-bubble {
+  max-width: 90%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.chat-bubble pre {
+  margin: 0;
+  font-family: var(--sans);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 145%;
+}
+
+.chat-bubble--user {
+  align-self: flex-end;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  color: var(--text-h);
+}
+
+.chat-bubble--assistant {
+  align-self: flex-start;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+}
+
+.chat-bubble--pending {
+  color: var(--text);
+  font-style: italic;
+}
+
+.chat-bubble--error {
+  align-self: flex-start;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  color: #dc2626;
+}
+
+.chat-input {
+  display: flex;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 15px;
+  font-family: var(--sans);
+}
+
+.chat-input input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.chat-input button {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.chat-input button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

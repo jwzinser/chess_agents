@@ -103,6 +103,16 @@
   font-style: italic;
 }
 
+.status-tactic {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #dc2626;
+}
+
 .move-error {
   font-size: 13px;
   color: #dc2626;

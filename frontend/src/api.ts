@@ -16,6 +16,7 @@ export interface GameState {
   status: string;
   game_over: boolean;
   in_check: boolean;
+  attacked_squares: string[];
 }
 
 export interface MoveResponse {
@@ -66,4 +67,18 @@ export async function askAboutPosition(question: string): Promise<string> {
 export async function explainLastMove(): Promise<string> {
   const data = await request<{ comment: string }>("/explain_last_move");
   return data.comment;
+}
+
+export interface TacticInfo {
+  tactic_available: boolean;
+  side: Color;
+  eval_gain_cp: number;
+}
+
+export async function getTactic(): Promise<TacticInfo> {
+  const res = await fetch(`${API_BASE}/tactic`);
+  if (!res.ok) {
+    throw new Error(`Request failed (${res.status}): ${await res.text()}`);
+  }
+  return res.json() as Promise<TacticInfo>;
 }

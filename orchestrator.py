@@ -18,7 +18,11 @@ MAX_DEPTH = int(os.environ.get("ENGINE_MAX_DEPTH", "5"))
 
 
 def ai_move_orchestrator(game: ChessGame) -> MoveResult:
-    move, score = find_best_move(game.board, time_limit=TIME_LIMIT, max_depth=MAX_DEPTH)
+    # Search a copy, not the live board: find_best_move pushes/pops moves as
+    # it recurses, and this must not mutate the board other requests read.
+    move, score = find_best_move(
+        game.board.copy(stack=False), time_limit=TIME_LIMIT, max_depth=MAX_DEPTH
+    )
     uci = move.uci()
     print(f"[Orchestrator] Engine chose {game.board.san(move)} (score {score})")
     return game.push_uci(uci)

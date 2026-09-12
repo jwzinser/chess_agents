@@ -44,6 +44,7 @@ interface Props {
   sideToMove: Color;
   disabled: boolean;
   lastMove?: { from: string; to: string } | null;
+  attackedSquares?: string[];
   onMove: (uci: string) => void;
 }
 
@@ -54,6 +55,7 @@ export default function Board({
   sideToMove,
   disabled,
   lastMove,
+  attackedSquares,
   onMove,
 }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
@@ -68,6 +70,8 @@ export default function Board({
     }
     return map;
   }, [selected, legalMoves]);
+
+  const attackedSet = useMemo(() => new Set(attackedSquares ?? []), [attackedSquares]);
 
   function squareColorOf(piece: string | undefined): Color | null {
     if (!piece) return null;
@@ -118,6 +122,7 @@ export default function Board({
       const isSelected = square === selected;
       const isTarget = legalTargets.has(square);
       const isLastMove = lastMove?.from === square || lastMove?.to === square;
+      const isAttacked = Boolean(piece) && attackedSet.has(square);
 
       cells.push(
         <button
@@ -128,6 +133,7 @@ export default function Board({
             dark ? "board-square--dark" : "board-square--light",
             isSelected ? "board-square--selected" : "",
             isLastMove ? "board-square--last-move" : "",
+            isAttacked ? "board-square--attacked" : "",
           ]
             .filter(Boolean)
             .join(" ")}

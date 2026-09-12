@@ -78,6 +78,14 @@ class ChessGame:
         self.board.push(move)
         return MoveResult(ok=True, san=san, uci=uci)
 
+    def attacked_squares(self) -> list[str]:
+        """Squares holding a piece that is attacked by the opponent of that piece."""
+        return [
+            chess.square_name(square)
+            for square, piece in self.board.piece_map().items()
+            if self.board.is_attacked_by(not piece.color, square)
+        ]
+
     def move_history_san(self) -> list[str]:
         history = []
         board = chess.Board()
@@ -96,4 +104,5 @@ class ChessGame:
             "status": _status(self.board),
             "game_over": self.board.is_game_over(),
             "in_check": self.board.is_check(),
+            "attacked_squares": self.attacked_squares(),
         }

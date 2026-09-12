@@ -235,6 +235,30 @@ def find_best_move(
     return best_move, best_score
 
 
+TACTIC_THRESHOLD_CP = 150  # min centipawn gain over the quiet eval to call it a "tactic"
+
+
+def detect_tactic(
+    board: chess.Board, time_limit: float = 0.5, max_depth: int = 4
+) -> dict:
+    """Whether the side to move has a forcing tactic available.
+
+    Compares the quiet, no-search material+PST evaluation against a short
+    search's result: a big gap means the best move only reveals its value
+    through a forcing sequence (a hanging piece, a fork, a winning
+    exchange) rather than being visible from the static position alone.
+    Doesn't reveal the move itself, just that one exists.
+    """
+    if board.is_game_over():
+        return {"tactic": False, "eval_gain_cp": 0}
+    static_score = evaluate(board)
+    # Search a copy: the search pushes/pops moves as it recurses, and this can
+    # run concurrently with other requests touching the live game board.
+    _, best_score = find_best_move(board.copy(stack=False), time_limit=time_limit, max_depth=max_depth)
+    gain = best_score - static_score
+    return {"tactic": gain >= TACTIC_THRESHOLD_CP, "eval_gain_cp": gain}
+
+
 if __name__ == "__main__":
     b = chess.Board()
     mv, sc = find_best_move(b, time_limit=2.0)

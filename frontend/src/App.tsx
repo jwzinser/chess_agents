@@ -4,11 +4,13 @@ import {
   askAboutPosition,
   explainLastMove,
   getState,
+  getTactic,
   newGame,
   playAiMove,
   playMove,
   type Color,
   type GameState,
+  type TacticInfo,
 } from "./api";
 import "./App.css";
 
@@ -59,6 +61,7 @@ function App() {
   const [aiThinking, setAiThinking] = useState(false);
   const [moveInFlight, setMoveInFlight] = useState(false);
   const [starting, setStarting] = useState(true);
+  const [tacticInfo, setTacticInfo] = useState<TacticInfo | null>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -115,11 +118,30 @@ function App() {
     };
   }, [gameState]);
 
+  useEffect(() => {
+    if (!gameState || gameState.game_over) {
+      setTacticInfo(null);
+      return;
+    }
+    let cancelled = false;
+    getTactic()
+      .then((info) => {
+        if (!cancelled) setTacticInfo(info);
+      })
+      .catch(() => {
+        if (!cancelled) setTacticInfo(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [gameState?.fen, gameState?.game_over]);
+
   async function startNewGame(color: Color) {
     setStarting(true);
     setMoveError(null);
     setLastMove(null);
     setMessages([]);
+    setTacticInfo(null);
     try {
       const state = await newGame(color);
       setGameState(state);
@@ -208,6 +230,7 @@ function App() {
                 sideToMove={gameState.turn}
                 disabled={boardDisabled || starting}
                 lastMove={lastMove}
+                attackedSquares={gameState.attacked_squares}
                 onMove={handleSquareMove}
               />
               <div className="game-status">
@@ -217,6 +240,11 @@ function App() {
                   {statusLabel(gameState)}
                 </span>
                 {aiThinking && <span className="status-thinking">AI is thinking…</span>}
+                {tacticInfo?.tactic_available && (
+                  <span className="status-tactic">
+                    ⚡ Tactic available for {capitalize(tacticInfo.side)}
+                  </span>
+                )}
               </div>
               {moveError && <div className="move-error">{moveError}</div>}
               {gameState.move_history_san.length > 0 && (

@@ -1,23 +1,9 @@
 import { useMemo, useState } from "react";
 import type { Color, LegalMove } from "./api";
+import PieceIcon, { type PieceType } from "./PieceIcon";
 import "./Board.css";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
-
-const UNICODE_PIECES: Record<string, string> = {
-  K: "♔",
-  Q: "♕",
-  R: "♖",
-  B: "♗",
-  N: "♘",
-  P: "♙",
-  k: "♚",
-  q: "♛",
-  r: "♜",
-  b: "♝",
-  n: "♞",
-  p: "♟",
-};
 
 function piecesBySquare(fen: string): Record<string, string> {
   const board = fen.split(" ")[0];
@@ -140,7 +126,14 @@ export default function Board({
           onClick={() => handleClick(square)}
           aria-label={square}
         >
-          {piece && <span className="board-piece">{UNICODE_PIECES[piece]}</span>}
+          {piece && (
+            <span className="board-piece">
+              <PieceIcon
+                type={piece.toLowerCase() as PieceType}
+                color={squareColorOf(piece) as Color}
+              />
+            </span>
+          )}
           {isTarget && !piece && <span className="board-dot" />}
           {isTarget && piece && <span className="board-ring" />}
         </button>,

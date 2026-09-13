@@ -3,6 +3,7 @@ import Board from "./Board";
 import {
   askAboutPosition,
   explainLastMove,
+  explainTactic,
   getState,
   getTactic,
   newGame,
@@ -62,6 +63,7 @@ function App() {
   const [moveInFlight, setMoveInFlight] = useState(false);
   const [starting, setStarting] = useState(true);
   const [tacticInfo, setTacticInfo] = useState<TacticInfo | null>(null);
+  const [tacticExplaining, setTacticExplaining] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -169,6 +171,23 @@ function App() {
     }
   }
 
+  async function handleExplainTactic() {
+    if (tacticExplaining) return;
+    setTacticExplaining(true);
+    try {
+      const explanation = await explainTactic();
+      setMessages((prev) => [
+        ...prev,
+        { id: nextId++, role: "assistant", content: `⚡ ${explanation}` },
+      ]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setMessages((prev) => [...prev, { id: nextId++, role: "error", content: message }]);
+    } finally {
+      setTacticExplaining(false);
+    }
+  }
+
   async function handleAsk(e: React.FormEvent) {
     e.preventDefault();
     const question = chatInput.trim();
@@ -241,9 +260,14 @@ function App() {
                 </span>
                 {aiThinking && <span className="status-thinking">AI is thinking…</span>}
                 {tacticInfo?.tactic_available && (
-                  <span className="status-tactic">
-                    ⚡ Tactic available for {capitalize(tacticInfo.side)}
-                  </span>
+                  <button
+                    type="button"
+                    className="status-tactic"
+                    onClick={handleExplainTactic}
+                    disabled={tacticExplaining}
+                  >
+                    ⚡ Tactic available for {capitalize(tacticInfo.side)} — {tacticExplaining ? "explaining…" : "explain"}
+                  </button>
                 )}
               </div>
               {moveError && <div className="move-error">{moveError}</div>}

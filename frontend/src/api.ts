@@ -82,3 +82,8 @@ export async function getTactic(): Promise<TacticInfo> {
   }
   return res.json() as Promise<TacticInfo>;
 }
+
+export async function explainTactic(): Promise<string> {
+  const data = await request<{ explanation: string }>("/explain_tactic");
+  return data.explanation;
+}

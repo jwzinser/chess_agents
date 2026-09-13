@@ -108,9 +108,20 @@
   border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
+  font-family: inherit;
   background: rgba(239, 68, 68, 0.12);
   border: 1px solid rgba(239, 68, 68, 0.45);
   color: #dc2626;
+  cursor: pointer;
+}
+
+.status-tactic:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.status-tactic:disabled {
+  cursor: default;
+  opacity: 0.75;
 }
 
 .move-error {

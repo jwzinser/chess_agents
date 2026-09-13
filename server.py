@@ -22,14 +22,20 @@ from pydantic import BaseModel
 from analysis_agent import analysis_agent
 from chess_engine import ChessGame
 from engine import detect_tactic
-from move_agent import explain_move
+from move_agent import explain_move, explain_tactic_move
 from orchestrator import ai_move_orchestrator
 
 app = FastAPI(title="Chess Agents API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://192.168.0.100:5173",
+        "http://192.168.0.100:5174",
+        "http://67.205.142.155",
+    ],
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
@@ -63,6 +69,10 @@ class TacticResponse(BaseModel):
     tactic_available: bool
     side: str
     eval_gain_cp: int
+
+
+class TacticExplainResponse(BaseModel):
+    explanation: str
 
 
 class MoveResponse(BaseModel):
@@ -154,6 +164,21 @@ def tactic() -> TacticResponse:
     return TacticResponse(
         tactic_available=result["tactic"], side=side, eval_gain_cp=result["eval_gain_cp"]
     )
+
+
+@app.post("/explain_tactic", response_model=TacticExplainResponse)
+def explain_tactic() -> TacticExplainResponse:
+    with GAME_LOCK:
+        side = "white" if GAME.board.turn else "black"
+        board_snapshot = GAME.board.copy()
+    result = detect_tactic(board_snapshot)
+    if not result["tactic"] or result["move"] is None:
+        raise HTTPException(400, "No tactic available in the current position")
+    san = board_snapshot.san(result["move"])
+    explanation = explain_tactic_move(
+        fen=board_snapshot.fen(), san=san, side=side, eval_gain_cp=result["eval_gain_cp"]
+    )
+    return TacticExplainResponse(explanation=explanation)
 
 
 @app.post("/ask", response_model=AskResponse)

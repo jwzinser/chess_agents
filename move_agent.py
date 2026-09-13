@@ -27,3 +27,26 @@ def explain_move(fen_before: str, san: str, move_history_san: list[str], color: 
         "Why does this move make sense?"
     )
     return call_llm(SYSTEM_PROMPT, user, max_tokens=80).strip()
+
+
+TACTIC_SYSTEM_PROMPT = """You are a chess coach pointing out a tactic the
+side to move has available in the current position (not yet played).
+
+Rules:
+- 2-3 short sentences.
+- Name the move in SAN and say what kind of tactic it is (fork, pin, skewer,
+  discovered attack, hanging piece, or forced mate), and why it works.
+- No markdown.
+"""
+
+
+def explain_tactic_move(fen: str, san: str, side: str, eval_gain_cp: int) -> str:
+    pawns = eval_gain_cp / 100
+    user = (
+        f"Position (FEN): {fen}\n"
+        f"Side to move: {side}\n"
+        f"The tactical move available: {san}\n"
+        f"It gains roughly {pawns:.1f} pawns of material/advantage over any quiet move.\n\n"
+        "Explain the tactic."
+    )
+    return call_llm(TACTIC_SYSTEM_PROMPT, user, max_tokens=150).strip()

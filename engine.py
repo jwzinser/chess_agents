@@ -250,13 +250,13 @@ def detect_tactic(
     Doesn't reveal the move itself, just that one exists.
     """
     if board.is_game_over():
-        return {"tactic": False, "eval_gain_cp": 0}
+        return {"tactic": False, "eval_gain_cp": 0, "move": None}
     static_score = evaluate(board)
     # Search a copy: the search pushes/pops moves as it recurses, and this can
     # run concurrently with other requests touching the live game board.
-    _, best_score = find_best_move(board.copy(stack=False), time_limit=time_limit, max_depth=max_depth)
+    move, best_score = find_best_move(board.copy(stack=False), time_limit=time_limit, max_depth=max_depth)
     gain = best_score - static_score
-    return {"tactic": gain >= TACTIC_THRESHOLD_CP, "eval_gain_cp": gain}
+    return {"tactic": gain >= TACTIC_THRESHOLD_CP, "eval_gain_cp": gain, "move": move}
 
 
 if __name__ == "__main__":

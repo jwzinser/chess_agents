@@ -110,9 +110,12 @@ export ENGINE_MAX_DEPTH=6      # ply cap, default 5
 
 ## Notes
 
-- Game state is a single in-memory game per server process (no DB, no
-  multi-session support) — restarting the server or calling `/new_game`
-  resets it, same minimalism as `shop.db` in sql_agents.
+- Each `/new_game` call creates its own in-memory session (keyed by a
+  `game_id` the frontend stores and sends back as `X-Game-Id` on every
+  request), so concurrent players don't share a board. There's still no DB
+  though — sessions live only in the server process's memory, idle ones
+  are swept after `SESSION_TTL_SECONDS` (6h default), and a server restart
+  drops all of them, same minimalism as `shop.db` in sql_agents.
 - Promotions always auto-promote to queen (frontend appends `q` to the UCI
   string on a promoting pawn move) — no underpromotion support, kept simple.
 - The engine is intentionally lightweight (no opening book, no transposition

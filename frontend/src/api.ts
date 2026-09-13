@@ -1,4 +1,27 @@
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
+const GAME_ID_STORAGE_KEY = "chess_game_id";
+
+function getGameId(): string | null {
+  try {
+    return localStorage.getItem(GAME_ID_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setGameId(id: string): void {
+  try {
+    localStorage.setItem(GAME_ID_STORAGE_KEY, id);
+  } catch {
+    // Private browsing / storage disabled: the session just won't persist
+    // across reloads, which is a fine degradation for a demo app.
+  }
+}
+
+function gameIdHeaders(): Record<string, string> {
+  const id = getGameId();
+  return id ? { "X-Game-Id": id } : {};
+}
 
 export type Color = "white" | "black";
 
@@ -30,7 +53,7 @@ export interface MoveResponse {
 async function request<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...gameIdHeaders() },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!res.ok) {
@@ -40,11 +63,15 @@ async function request<T>(path: string, body?: unknown): Promise<T> {
 }
 
 export async function newGame(humanColor: Color): Promise<GameState> {
-  return request<GameState>("/new_game", { human_color: humanColor });
+  const state = await request<GameState & { game_id: string }>("/new_game", {
+    human_color: humanColor,
+  });
+  setGameId(state.game_id);
+  return state;
 }
 
 export async function getState(): Promise<GameState> {
-  const res = await fetch(`${API_BASE}/state`);
+  const res = await fetch(`${API_BASE}/state`, { headers: gameIdHeaders() });
   if (!res.ok) {
     throw new Error(`Request failed (${res.status}): ${await res.text()}`);
   }
@@ -76,7 +103,7 @@ export interface TacticInfo {
 }
 
 export async function getTactic(): Promise<TacticInfo> {
-  const res = await fetch(`${API_BASE}/tactic`);
+  const res = await fetch(`${API_BASE}/tactic`, { headers: gameIdHeaders() });
   if (!res.ok) {
     throw new Error(`Request failed (${res.status}): ${await res.text()}`);
   }

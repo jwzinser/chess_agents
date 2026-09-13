@@ -11,10 +11,76 @@
   text-align: left;
 }
 
+.app-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .app-header p {
   margin-top: 6px;
   font-size: 15px;
   color: var(--text);
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.user-name {
+  font-size: 14px;
+  color: var(--text-h);
+}
+
+.sign-out-button {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.login-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.login-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  max-width: 360px;
+  padding: 32px 28px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+}
+
+.login-card p {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.login-error {
+  color: #dc2626;
 }
 
 .app-body {
@@ -22,6 +88,80 @@
   flex: 1;
   min-height: 0;
   flex-wrap: wrap;
+}
+
+.opponent-label {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 40px 20px;
+  flex: 1;
+}
+
+.lobby-status {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.lobby-section {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lobby-section h2 {
+  font-size: 15px;
+  color: var(--text-h);
+  margin: 0;
+}
+
+.lobby-game-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lobby-game-list button {
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text-h);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.lobby-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lobby-actions > button {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.lobby-actions .game-controls {
+  justify-content: flex-start;
 }
 
 .board-column {

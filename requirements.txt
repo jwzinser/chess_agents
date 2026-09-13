@@ -3,3 +3,7 @@ anthropic>=0.40
 python-dotenv>=1.0
 fastapi>=0.110
 uvicorn>=0.29
+google-auth>=2.35
+requests>=2.31
+sqlalchemy>=2.0
+websockets>=12

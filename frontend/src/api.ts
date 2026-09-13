@@ -1,29 +1,24 @@
+import { getToken, setToken } from "./auth";
+
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
-const GAME_ID_STORAGE_KEY = "chess_game_id";
 
-function getGameId(): string | null {
-  try {
-    return localStorage.getItem(GAME_ID_STORAGE_KEY);
-  } catch {
-    return null;
-  }
+export class AuthError extends Error {}
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-function setGameId(id: string): void {
-  try {
-    localStorage.setItem(GAME_ID_STORAGE_KEY, id);
-  } catch {
-    // Private browsing / storage disabled: the session just won't persist
-    // across reloads, which is a fine degradation for a demo app.
+async function handleUnauthorized(res: Response): Promise<never> {
+  if (res.status === 401) {
+    setToken(null);
+    throw new AuthError("Session expired, please sign in again");
   }
-}
-
-function gameIdHeaders(): Record<string, string> {
-  const id = getGameId();
-  return id ? { "X-Game-Id": id } : {};
+  throw new Error(`Request failed (${res.status}): ${await res.text()}`);
 }
 
 export type Color = "white" | "black";
+export type GameMode = "ai" | "pvp";
 
 export interface LegalMove {
   uci: string;
@@ -40,6 +35,10 @@ export interface GameState {
   game_over: boolean;
   in_check: boolean;
   attacked_squares: string[];
+  last_move_uci: string | null;
+  game_id: string;
+  mode: GameMode;
+  opponent_name: string | null;
 }
 
 export interface MoveResponse {
@@ -50,49 +49,73 @@ export interface MoveResponse {
   state: GameState;
 }
 
-async function request<T>(path: string, body?: unknown): Promise<T> {
+export interface MyGame {
+  game_id: string;
+  mode: GameMode;
+  your_color: Color;
+  opponent_name: string | null;
+}
+
+async function post<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...gameIdHeaders() },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new Error(`Request failed (${res.status}): ${await res.text()}`);
+    return handleUnauthorized(res);
   }
   return res.json() as Promise<T>;
 }
 
-export async function newGame(humanColor: Color): Promise<GameState> {
-  const state = await request<GameState & { game_id: string }>("/new_game", {
-    human_color: humanColor,
-  });
-  setGameId(state.game_id);
-  return state;
-}
-
-export async function getState(): Promise<GameState> {
-  const res = await fetch(`${API_BASE}/state`, { headers: gameIdHeaders() });
+async function get<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, { headers: authHeaders() });
   if (!res.ok) {
-    throw new Error(`Request failed (${res.status}): ${await res.text()}`);
+    return handleUnauthorized(res);
   }
-  return res.json() as Promise<GameState>;
+  return res.json() as Promise<T>;
 }
 
-export async function playMove(uci: string): Promise<MoveResponse> {
-  return request<MoveResponse>("/move", { uci });
+export async function newAiGame(humanColor: Color): Promise<GameState> {
+  return post<GameState>("/games/ai", { human_color: humanColor });
 }
 
-export async function playAiMove(): Promise<MoveResponse> {
-  return request<MoveResponse>("/ai_move");
+export async function getGameState(gameId: string): Promise<GameState> {
+  return get<GameState>(`/games/${gameId}`);
 }
 
-export async function askAboutPosition(question: string): Promise<string> {
-  const data = await request<{ answer: string }>("/ask", { question });
+export async function getMyGames(): Promise<MyGame[]> {
+  return get<MyGame[]>("/my/games");
+}
+
+export interface MatchmakingResult {
+  matched: boolean;
+  game_id: string | null;
+}
+
+export async function joinMatchmaking(): Promise<MatchmakingResult> {
+  return post<MatchmakingResult>("/matchmaking/join");
+}
+
+export async function leaveMatchmaking(): Promise<void> {
+  await post("/matchmaking/leave");
+}
+
+export async function playMove(gameId: string, uci: string): Promise<MoveResponse> {
+  return post<MoveResponse>(`/games/${gameId}/move`, { uci });
+}
+
+export async function playAiMove(gameId: string): Promise<MoveResponse> {
+  return post<MoveResponse>(`/games/${gameId}/ai_move`);
+}
+
+export async function askAboutPosition(gameId: string, question: string): Promise<string> {
+  const data = await post<{ answer: string }>(`/games/${gameId}/ask`, { question });
   return data.answer;
 }
 
-export async function explainLastMove(): Promise<string> {
-  const data = await request<{ comment: string }>("/explain_last_move");
+export async function explainLastMove(gameId: string): Promise<string> {
+  const data = await post<{ comment: string }>(`/games/${gameId}/explain_last_move`);
   return data.comment;
 }
 
@@ -102,15 +125,29 @@ export interface TacticInfo {
   eval_gain_cp: number;
 }
 
-export async function getTactic(): Promise<TacticInfo> {
-  const res = await fetch(`${API_BASE}/tactic`, { headers: gameIdHeaders() });
-  if (!res.ok) {
-    throw new Error(`Request failed (${res.status}): ${await res.text()}`);
-  }
-  return res.json() as Promise<TacticInfo>;
+export async function getTactic(gameId: string): Promise<TacticInfo> {
+  return get<TacticInfo>(`/games/${gameId}/tactic`);
 }
 
-export async function explainTactic(): Promise<string> {
-  const data = await request<{ explanation: string }>("/explain_tactic");
+export async function explainTactic(gameId: string): Promise<string> {
+  const data = await post<{ explanation: string }>(`/games/${gameId}/explain_tactic`);
   return data.explanation;
+}
+
+function wsBase(): string {
+  if (API_BASE.startsWith("http://") || API_BASE.startsWith("https://")) {
+    return API_BASE.replace(/^http/, "ws");
+  }
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${proto}//${window.location.host}${API_BASE}`;
+}
+
+export function connectGameSocket(gameId: string): WebSocket {
+  const token = getToken() ?? "";
+  return new WebSocket(`${wsBase()}/ws/games/${gameId}?token=${encodeURIComponent(token)}`);
+}
+
+export function connectLobbySocket(): WebSocket {
+  const token = getToken() ?? "";
+  return new WebSocket(`${wsBase()}/ws/lobby?token=${encodeURIComponent(token)}`);
 }

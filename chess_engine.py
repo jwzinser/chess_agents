@@ -95,6 +95,7 @@ class ChessGame:
         return history
 
     def to_state(self) -> dict:
+        last_move = self.board.peek() if self.board.move_stack else None
         return {
             "fen": self.board.fen(),
             "turn": "white" if self.board.turn else "black",
@@ -105,4 +106,5 @@ class ChessGame:
             "game_over": self.board.is_game_over(),
             "in_check": self.board.is_check(),
             "attacked_squares": self.attacked_squares(),
+            "last_move_uci": last_move.uci() if last_move else None,
         }

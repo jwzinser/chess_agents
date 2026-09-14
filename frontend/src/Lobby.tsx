@@ -24,6 +24,7 @@ function Lobby({ onEnterGame }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lobbySocketRef = useRef<WebSocket | null>(null);
+  const searchTokenRef = useRef(0);
 
   useEffect(() => {
     getMyGames()
@@ -33,6 +34,7 @@ function Lobby({ onEnterGame }: Props) {
 
   useEffect(() => {
     return () => {
+      searchTokenRef.current++;
       lobbySocketRef.current?.close();
     };
   }, []);
@@ -63,7 +65,21 @@ function Lobby({ onEnterGame }: Props) {
   async function findOpponent() {
     setError(null);
     setMode("searching");
-    const socket = connectLobbySocket();
+    const searchToken = ++searchTokenRef.current;
+    let socket: WebSocket;
+    try {
+      socket = await connectLobbySocket();
+    } catch (err) {
+      if (searchToken === searchTokenRef.current) {
+        setError(err instanceof Error ? err.message : "Could not connect");
+        setMode("idle");
+      }
+      return;
+    }
+    if (searchToken !== searchTokenRef.current) {
+      socket.close();
+      return;
+    }
     lobbySocketRef.current = socket;
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -92,6 +108,7 @@ function Lobby({ onEnterGame }: Props) {
   }
 
   async function cancelSearch() {
+    searchTokenRef.current++;
     lobbySocketRef.current?.close();
     lobbySocketRef.current = null;
     setMode("idle");

@@ -142,12 +142,17 @@ function wsBase(): string {
   return `${proto}//${window.location.host}${API_BASE}`;
 }
 
-export function connectGameSocket(gameId: string): WebSocket {
-  const token = getToken() ?? "";
-  return new WebSocket(`${wsBase()}/ws/games/${gameId}?token=${encodeURIComponent(token)}`);
+async function getWsTicket(): Promise<string> {
+  const data = await post<{ ticket: string }>("/ws-ticket");
+  return data.ticket;
 }
 
-export function connectLobbySocket(): WebSocket {
-  const token = getToken() ?? "";
-  return new WebSocket(`${wsBase()}/ws/lobby?token=${encodeURIComponent(token)}`);
+export async function connectGameSocket(gameId: string): Promise<WebSocket> {
+  const ticket = await getWsTicket();
+  return new WebSocket(`${wsBase()}/ws/games/${gameId}?ticket=${encodeURIComponent(ticket)}`);
+}
+
+export async function connectLobbySocket(): Promise<WebSocket> {
+  const ticket = await getWsTicket();
+  return new WebSocket(`${wsBase()}/ws/lobby?ticket=${encodeURIComponent(ticket)}`);
 }

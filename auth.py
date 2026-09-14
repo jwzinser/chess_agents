@@ -6,9 +6,20 @@ as `Authorization: Bearer <id_token>`. We verify it against Google's public
 keys and the configured GOOGLE_CLIENT_ID (audience) on every protected
 request. There is no session/user store - a valid, unexpired Google ID
 token is all that's required, matching the "login gate" scope of this app.
+
+Browsers can't send custom headers on a WebSocket handshake, so the long-
+lived Google ID token can't be used directly to authenticate `/ws/*`
+connections without it ending up in the URL - and therefore in nginx/uvicorn
+access logs - as plaintext query string. Instead, a client that already has
+a verified token exchanges it (via POST /ws-ticket) for a random, single-use
+ticket that's only valid for a few seconds; that's what goes in the socket
+URL, so a log line is worthless to anyone reading it after the fact.
 """
 
 import os
+import secrets
+import threading
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -55,3 +66,29 @@ def get_current_user(authorization: str | None = Header(None)) -> GoogleUser:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "Missing bearer token")
     return verify_token(authorization.removeprefix("Bearer ").strip())
+
+
+_WS_TICKET_TTL_SECONDS = 30
+
+_ws_tickets: dict[str, tuple[GoogleUser, float]] = {}
+_ws_tickets_lock = threading.Lock()
+
+
+def create_ws_ticket(user: GoogleUser) -> str:
+    """Mint a random, single-use ticket for `user`, valid for a few seconds."""
+    ticket = secrets.token_urlsafe(32)
+    with _ws_tickets_lock:
+        _ws_tickets[ticket] = (user, time.monotonic() + _WS_TICKET_TTL_SECONDS)
+    return ticket
+
+
+def consume_ws_ticket(ticket: str) -> GoogleUser:
+    """Redeem a ticket for the user it was issued to. Each ticket works once."""
+    with _ws_tickets_lock:
+        entry = _ws_tickets.pop(ticket, None)
+    if entry is None:
+        raise HTTPException(401, "Invalid or expired ticket")
+    user, expires_at = entry
+    if time.monotonic() > expires_at:
+        raise HTTPException(401, "Invalid or expired ticket")
+    return user

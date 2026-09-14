@@ -84,12 +84,23 @@ function Game({ initialState, onExit }: Props) {
   // PvP: receive the opponent's moves over the game's websocket.
   useEffect(() => {
     if (isAiMode) return;
-    const socket = connectGameSocket(gameId);
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "state") setGameState(data.state);
+    let cancelled = false;
+    let socket: WebSocket | null = null;
+    connectGameSocket(gameId).then((s) => {
+      if (cancelled) {
+        s.close();
+        return;
+      }
+      socket = s;
+      s.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "state") setGameState(data.state);
+      };
+    });
+    return () => {
+      cancelled = true;
+      socket?.close();
     };
-    return () => socket.close();
   }, [gameId, isAiMode]);
 
   // AI mode: trigger the engine's reply whenever it's the AI's turn.

@@ -27,7 +27,7 @@ from pydantic import BaseModel
 import games
 import realtime
 from analysis_agent import analysis_agent
-from auth import GoogleUser, get_current_user, verify_token
+from auth import GoogleUser, consume_ws_ticket, create_ws_ticket, get_current_user
 from db import init_db
 from engine import detect_tactic
 from move_agent import explain_move, explain_tactic_move
@@ -41,7 +41,6 @@ app.add_middleware(
         "http://localhost:5174",
         "http://192.168.0.100:5173",
         "http://192.168.0.100:5174",
-        "http://67.205.142.155",
         "https://chessagents123.com",
         "https://www.chessagents123.com",
     ],
@@ -98,9 +97,18 @@ class MatchmakingResponse(BaseModel):
     game_id: str | None = None
 
 
+class WsTicketResponse(BaseModel):
+    ticket: str
+
+
 @app.get("/me")
 def me(user: GoogleUser = Depends(get_current_user)) -> dict:
     return user.to_dict()
+
+
+@app.post("/ws-ticket", response_model=WsTicketResponse)
+def ws_ticket(user: GoogleUser = Depends(get_current_user)) -> WsTicketResponse:
+    return WsTicketResponse(ticket=create_ws_ticket(user))
 
 
 @app.post("/games/ai")
@@ -207,12 +215,12 @@ def ask(game_id: str, req: AskRequest, user: GoogleUser = Depends(get_current_us
 
 @app.websocket("/ws/games/{game_id}")
 async def ws_game(websocket: WebSocket, game_id: str) -> None:
-    token = websocket.query_params.get("token")
-    if not token:
+    ticket = websocket.query_params.get("ticket")
+    if not ticket:
         await websocket.close(code=4401)
         return
     try:
-        user = await run_in_threadpool(verify_token, token)
+        user = await run_in_threadpool(consume_ws_ticket, ticket)
         state = await run_in_threadpool(games.get_state, game_id, user)
     except HTTPException:
         await websocket.close(code=4401)
@@ -232,12 +240,12 @@ async def ws_game(websocket: WebSocket, game_id: str) -> None:
 
 @app.websocket("/ws/lobby")
 async def ws_lobby(websocket: WebSocket) -> None:
-    token = websocket.query_params.get("token")
-    if not token:
+    ticket = websocket.query_params.get("ticket")
+    if not ticket:
         await websocket.close(code=4401)
         return
     try:
-        user = await run_in_threadpool(verify_token, token)
+        user = await run_in_threadpool(consume_ws_ticket, ticket)
     except HTTPException:
         await websocket.close(code=4401)
         return
